@@ -129,6 +129,7 @@ const ReportsView: React.FC<{ state: AppState }> = ({ state }) => {
     [state.orders]);
 
     const availableYears = useMemo(() => 
+        // FIX: Explicitly cast sort parameters to Number to resolve TypeScript error.
         [...new Set(finishedOrders.map(o => new Date(o.timestamp).getFullYear()))].sort((a, b) => Number(b) - Number(a)),
     [finishedOrders]);
 
