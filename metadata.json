@@ -1,5 +1,0 @@
-{
-  "name": "Tortillería POS",
-  "description": "A point-of-sale application for a flour tortilla business, allowing customers to place orders and an administrator to view sales data and manage settings.",
-  "requestFramePermissions": []
-}
