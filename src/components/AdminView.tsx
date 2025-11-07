@@ -1,5 +1,5 @@
 import React, { useState, useContext, useMemo, useEffect } from 'react';
-import { AppContext } from '../context/AppContext';
+import { AppContext } from '../state/AppContext';
 import { AppState, Order, Affiliate, InventoryChange, OrderStatus, AffiliateStatus, InventoryChangeStatus, Referral, Coupon, ReferralStatus, PaymentMethod, TabVisibility, CashOut, CashOutStatus } from '../types';
 import StatCard from './StatCard';
 import CashIcon from './icons/CashIcon';
@@ -540,7 +540,7 @@ const AffiliatesView: React.FC<{ state: AppState, dispatch: React.Dispatch<any>,
 const ReferralsView: React.FC<{ state: AppState, dispatch: React.Dispatch<any> }> = ({ state, dispatch }) => {
     const handleNotifyAndSendCoupon = (referral: Referral) => {
         const couponCode = generateUniqueCouponCode();
-        dispatch({ type: 'COMPLETE_REFERRAL', payload: { referral, couponCode } });
+        dispatch({ type: 'COMPLETE_REFERRAL', payload: { referralId: referral.id, couponCode, referrerPhone: referral.referrerPhone } });
         const message = `¡Felicidades, ${referral.referrerName}! 🎉\n\nTu referido ${referral.refereeName} ha completado su pedido. ¡Has ganado un cupón para 10 tortillas gratis!\n\nUsa este código en tu próxima compra:\n*${couponCode}*`;
         const whatsappUrl = `https://wa.me/52${referral.referrerPhone}?text=${encodeURIComponent(message)}`;
         window.open(whatsappUrl, '_blank');
@@ -579,7 +579,7 @@ const ReferralsView: React.FC<{ state: AppState, dispatch: React.Dispatch<any> }
 
 const CouponsView: React.FC<{ state: AppState, dispatch: React.Dispatch<any> }> = ({ state, dispatch }) => {
     const handleToggleCouponStatus = (coupon: Coupon) => {
-        dispatch({ type: 'TOGGLE_COUPON_STATUS', payload: { coupon } });
+        dispatch({ type: 'TOGGLE_COUPON_STATUS', payload: { couponCode: coupon.code, isActive: coupon.isActive } });
     };
 
     return (
@@ -844,7 +844,7 @@ const SettingsView: React.FC<{ state: AppState, dispatch: React.Dispatch<any> }>
             tortillaPrice: state.tortillaPrice,
             tabVisibility: state.tabVisibility || { referrals: true, affiliates: true, coupons: true },
         });
-    }, [state]);
+    }, [state.adminPassword, state.adminPhoneNumber, state.bankDetails, state.affiliateCommissionPerTortilla, state.publicAppUrl, state.tortillaPrice, state.tabVisibility]);
 
     const handleSettingsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -868,10 +868,12 @@ const SettingsView: React.FC<{ state: AppState, dispatch: React.Dispatch<any> }>
     };
 
     const handleDownloadBackup = () => {
-        dispatch({ type: 'SET_SUCCESS_MESSAGE', payload: 'Descarga de copia de seguridad deshabilitada con base de datos en la nube.' });
+        // This function is now disabled in the UI logic for Firestore version
+        dispatch({ type: 'SET_SUCCESS_MESSAGE', payload: 'La copia de seguridad está deshabilitada. Los datos están en la nube.' });
     };
 
-    const handleLoadBackup = () => {
+    const handleLoadBackup = (event: React.ChangeEvent<HTMLInputElement>) => {
+        // This function is now disabled in the UI logic for Firestore version
         dispatch({ type: 'LOAD_STATE' });
     };
     
@@ -954,15 +956,15 @@ const SettingsView: React.FC<{ state: AppState, dispatch: React.Dispatch<any> }>
             </div>
              <div>
                 <h3 className="text-2xl font-bold text-brand-dark mb-4">Copia de Seguridad y Restauración</h3>
+                 <p className="text-sm text-gray-500 mb-2">Estas funciones están deshabilitadas. Todos tus datos se guardan y respaldan automáticamente en la nube.</p>
                 <div className="flex gap-4">
-                    <button onClick={handleDownloadBackup} className="flex-1 bg-blue-500 text-white px-4 py-2 rounded-md font-semibold flex items-center justify-center gap-2"><ArrowDownTrayIcon className="w-5 h-5"/>Descargar Copia</button>
-                    <label className="flex-1 bg-gray-600 text-white px-4 py-2 rounded-md font-semibold cursor-pointer flex items-center justify-center gap-2">
+                    <button disabled className="flex-1 bg-blue-300 text-white px-4 py-2 rounded-md font-semibold flex items-center justify-center gap-2 cursor-not-allowed"><ArrowDownTrayIcon className="w-5 h-5"/>Descargar Copia</button>
+                    <label className="flex-1 bg-gray-400 text-white px-4 py-2 rounded-md font-semibold cursor-not-allowed flex items-center justify-center gap-2">
                         <ArrowUpTrayIcon className="w-5 h-5"/>
                         Cargar Copia
-                        <input type="file" accept=".json" onChange={handleLoadBackup} className="hidden" />
+                        <input type="file" className="hidden" disabled />
                     </label>
                 </div>
-                 <p className="text-xs text-gray-500 mt-2">Nota: La restauración desde un archivo está deshabilitada ya que los datos ahora se gestionan en la nube para garantizar la consistencia.</p>
             </div>
         </div>
     );

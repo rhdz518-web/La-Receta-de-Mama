@@ -1,5 +1,5 @@
-import React, { useState, useContext, useEffect, useMemo, useRef, FC } from 'react';
-import { AppContext } from '../context/AppContext';
+import React, { useState, useContext, useEffect, useMemo, useRef } from 'react';
+import { AppContext } from '../state/AppContext';
 import { Order, PaymentMethod, OrderStatus, ReferralStatus, User, Referral, AffiliateStatus, Affiliate } from '../types';
 import { MIN_ORDER_FOR_REFERRAL, MIN_ORDER_FOR_COUPON, REWARD_TORTILLAS } from '../constants';
 import { generateReferralCode } from '../utils';
@@ -78,7 +78,7 @@ const getNextOpeningTime = (affiliate: Affiliate | null): string => {
 };
 
 
-const CustomerView: FC<CustomerViewProps> = ({ onAffiliateLoginClick }) => {
+const CustomerView: React.FC<CustomerViewProps> = ({ onAffiliateLoginClick }) => {
   const { state, dispatch } = useContext(AppContext);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<HTMLDivElement>(null);
@@ -143,7 +143,6 @@ const CustomerView: FC<CustomerViewProps> = ({ onAffiliateLoginClick }) => {
     return '';
   }, [referralName, referralPhone]);
 
-  // When a referral code is generated, add the user to the system so their code is valid.
   useEffect(() => {
     if (generatedReferralCode) {
         const userPayload: User = {
@@ -159,7 +158,6 @@ const CustomerView: FC<CustomerViewProps> = ({ onAffiliateLoginClick }) => {
     [state.affiliates]
   );
 
-  // Handle phone input to pre-fill data for existing users
   useEffect(() => {
     if (phone.length === 10) {
       const existingUser = state.users.find(u => u.phone === phone);
@@ -169,7 +167,6 @@ const CustomerView: FC<CustomerViewProps> = ({ onAffiliateLoginClick }) => {
     }
   }, [phone, state.users]);
   
-  // Effect to handle clicks outside of the suggestions dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
         if (suggestionsRef.current && !suggestionsRef.current.contains(event.target as Node)) {
@@ -182,7 +179,6 @@ const CustomerView: FC<CustomerViewProps> = ({ onAffiliateLoginClick }) => {
     };
   }, []);
 
-  // Effect to handle hidden tabs
   useEffect(() => {
     const visibility = state.tabVisibility;
     if (
@@ -308,7 +304,7 @@ const CustomerView: FC<CustomerViewProps> = ({ onAffiliateLoginClick }) => {
     if (Object.keys(errors).length > 1) return; // more than just discount
 
     const finalAffiliate = selectedAffiliate;
-    if (!finalAffiliate) return; // Should be caught by validation, but as a safeguard.
+    if (!finalAffiliate) return;
 
     const newOrder: Order = {
       id: `${Date.now()}-${phone.slice(-4)}`,
@@ -338,11 +334,9 @@ const CustomerView: FC<CustomerViewProps> = ({ onAffiliateLoginClick }) => {
   const handleConfirmOrder = () => {
     if (!orderToConfirm) return;
 
-    // Add/update user
     const userPayload: User = { customerName: orderToConfirm.customerName, phone: orderToConfirm.phone };
     dispatch({ type: 'ADD_OR_UPDATE_USER', payload: userPayload });
     
-    // Add referral if code was used
     if (orderToConfirm.referralCodeUsed) {
         const referrerUser = state.users.find(u => generateReferralCode(u.customerName, u.phone).toLowerCase() === orderToConfirm.referralCodeUsed!.toLowerCase());
         if (referrerUser) {
@@ -362,10 +356,8 @@ const CustomerView: FC<CustomerViewProps> = ({ onAffiliateLoginClick }) => {
         }
     }
 
-    // Add order
     dispatch({ type: 'ADD_ORDER', payload: orderToConfirm });
     
-    // Open WhatsApp to notify the vendor
     const affiliate = state.affiliates.find(a => a.id === orderToConfirm.affiliateId);
     if (affiliate) {
         const finalCost = orderToConfirm.totalCost + (orderToConfirm.deliveryFeeApplied || 0) - (orderToConfirm.discountApplied || 0);
@@ -394,12 +386,10 @@ const CustomerView: FC<CustomerViewProps> = ({ onAffiliateLoginClick }) => {
                         `---\n\n` +
                         `¡Quedo al pendiente de la confirmación! Gracias.`;
 
-        // Assuming Mexican phone numbers, prepend country code 52
         const whatsappUrl = `https://wa.me/52${affiliate.phone}?text=${encodeURIComponent(message)}`;
         window.open(whatsappUrl, '_blank');
     }
 
-    // Reset form
     setCustomerName('');
     setPhone('');
     setAddress('');
@@ -426,12 +416,11 @@ const CustomerView: FC<CustomerViewProps> = ({ onAffiliateLoginClick }) => {
     setOrderSuccessMessage(successMsg);
     setTimeout(() => setOrderSuccessMessage(''), 5000);
 
-    // Scroll to top to show the message
     viewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const handleShareReferral = () => {
-      setShareError(''); // Clear previous error
+      setShareError('');
       const appUrl = state.publicAppUrl;
       if (!appUrl || appUrl.trim() === '') {
           setShareError("El administrador necesita configurar la URL pública de la app en Ajustes para poder compartir.");
@@ -496,7 +485,6 @@ const CustomerView: FC<CustomerViewProps> = ({ onAffiliateLoginClick }) => {
     }
   };
 
-  // --- Start of Coupon Tab Logic ---
   const handleShowCoupons = (e: React.FormEvent) => {
     e.preventDefault();
     if (!/^\d{10}$/.test(couponPhoneInput.trim())) {
@@ -520,12 +508,11 @@ const CustomerView: FC<CustomerViewProps> = ({ onAffiliateLoginClick }) => {
         setTimeout(() => setCopiedCoupon(null), 2000);
     });
   };
-  // --- End of Coupon Tab Logic ---
 
   const inputClasses = "shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:ring-2 bg-gray-50";
   const errorClasses = "text-red-500 text-xs italic mt-1";
 
-  const TabButton: FC<{
+  const TabButton: React.FC<{
     isActive: boolean;
     onClick: () => void;
     children: React.ReactNode;
@@ -742,12 +729,10 @@ const CustomerView: FC<CustomerViewProps> = ({ onAffiliateLoginClick }) => {
                               inputMode="numeric"
                               value={quantity} 
                               onChange={e => {
-                                  // Allow the field to be empty while typing
                                   const val = e.target.value.replace(/\D/g, '');
                                   setQuantity(val);
                               }}
                               onBlur={e => {
-                                  // On leaving the field, ensure it's a valid number >= 1
                                   const num = parseInt(e.target.value, 10);
                                   if (isNaN(num) || num < 1) {
                                       setQuantity(1);

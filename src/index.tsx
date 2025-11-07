@@ -13,3 +13,16 @@ root.render(
     <App />
   </React.StrictMode>
 );
+
+// Register service worker for offline capabilities
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    // Vite's base config is handled in vite.config.ts for deployment
+    const swUrl = `/sw.js`;
+    navigator.serviceWorker.register(swUrl).then(registration => {
+      console.log('Service Worker registered with scope: ', registration.scope);
+    }).catch(registrationError => {
+      console.log('Service Worker registration failed: ', registrationError);
+    });
+  });
+}

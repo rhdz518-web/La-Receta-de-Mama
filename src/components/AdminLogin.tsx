@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { AppContext } from '../context/AppContext';
+import { AppContext } from '../state/AppContext';
 
 interface AdminLoginProps {
   onClose: () => void;

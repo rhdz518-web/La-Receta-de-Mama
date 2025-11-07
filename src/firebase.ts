@@ -1,5 +1,3 @@
-// FIX: Refactored to use Firebase v8 syntax to resolve import errors.
-// FIX: Switched to compat imports for Firebase v9 with v8 syntax.
 import firebase from "firebase/compat/app";
 import "firebase/compat/firestore";
 
@@ -21,5 +19,4 @@ if (!firebase.apps.length) {
 
 // Export firestore instance and helpers
 export const db = firebase.firestore();
-// FIX: Export FieldValue.increment for atomic server-side increments.
 export const increment = firebase.firestore.FieldValue.increment;

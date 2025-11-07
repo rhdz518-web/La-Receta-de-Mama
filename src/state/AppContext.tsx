@@ -6,7 +6,7 @@ import firebase from 'firebase/compat/app';
 import 'firebase/compat/firestore';
 
 
-// Define action types
+// Define action types with simplified payloads
 type Action =
     | { type: 'LOGIN'; payload: string }
     | { type: 'LOGOUT' }
@@ -14,35 +14,33 @@ type Action =
     | { type: 'AFFILIATE_LOGOUT' }
     | { type: 'ADD_OR_UPDATE_USER'; payload: User }
     | { type: 'ADD_ORDER'; payload: Order }
-    | { type: 'UPDATE_ORDER_STATUS'; payload: { order: Order; status: OrderStatus } }
+    | { type: 'UPDATE_ORDER_STATUS'; payload: { orderId: string; status: OrderStatus; quantity: number; affiliateId: string; } }
     | { type: 'CONFIRM_TRANSFER_PAYMENT'; payload: { orderId: string } }
     | { type: 'ADD_REFERRAL'; payload: Referral }
-    | { type: 'COMPLETE_REFERRAL'; payload: { referral: Referral; couponCode: string } }
-    | { type: 'TOGGLE_COUPON_STATUS'; payload: { coupon: Coupon } }
+    | { type: 'COMPLETE_REFERRAL'; payload: { referralId: string; couponCode: string; referrerPhone: string; } }
+    | { type: 'TOGGLE_COUPON_STATUS'; payload: { couponCode: string; isActive: boolean } }
     | { type: 'DELETE_COUPON'; payload: { couponCode: string } }
     | { type: 'APPLY_FOR_AFFILIATE'; payload: Affiliate }
     | { type: 'UPDATE_AFFILIATE_STATUS'; payload: { affiliateId: string; status: AffiliateStatus } }
-    | { type: 'TOGGLE_AFFILIATE_DELIVERY'; payload: { affiliate: Affiliate } }
+    | { type: 'TOGGLE_AFFILIATE_DELIVERY'; payload: { affiliateId: string; hasDeliveryService: boolean } }
     | { type: 'UPDATE_AFFILIATE_SETTINGS'; payload: { affiliateId: string; address: string; deliveryCost: number } }
     | { type: 'UPDATE_AFFILIATE_SCHEDULE'; payload: { affiliateId: string; schedule: Affiliate['schedule'] } }
-    | { type: 'TOGGLE_TEMPORARY_CLOSED'; payload: { affiliate: Affiliate } }
+    | { type: 'TOGGLE_TEMPORARY_CLOSED'; payload: { affiliateId: string; isTemporarilyClosed: boolean } }
     | { type: 'DELETE_AFFILIATE'; payload: { affiliateId: string } }
     | { type: 'ADD_INVENTORY_CHANGE'; payload: InventoryChange }
     | { type: 'RESOLVE_INVENTORY_CHANGE'; payload: { changeId: string; status: InventoryChangeStatus.Approved | InventoryChangeStatus.Rejected } }
-    | { type: 'AFFILIATE_CONFIRM_INVENTORY_CHANGE'; payload: { change: InventoryChange } }
+    | { type: 'AFFILIATE_CONFIRM_INVENTORY_CHANGE'; payload: { changeId: string; affiliateId: string; amount: number } }
     | { type: 'CANCEL_INVENTORY_REQUEST'; payload: { changeId: string } }
     | { type: 'UPDATE_SETTINGS'; payload: Partial<AppState> }
-    | { type: 'LOAD_STATE' } // Kept for API compatibility, but functionally disabled
+    | { type: 'LOAD_STATE' }
     | { type: 'SET_SUCCESS_MESSAGE'; payload: string }
     | { type: 'CLEAR_SUCCESS_MESSAGE' }
     | { type: 'UPDATE_AFFILIATE_BANK_DETAILS'; payload: { affiliateId: string; bankDetails: string } }
     | { type: 'PERFORM_CASHOUT'; payload: CashOut }
     | { type: 'AFFILIATE_CONFIRM_CASHOUT'; payload: { cashOutId: string } }
-    // New action to set state from Firestore
     | { type: 'SET_STATE_FROM_FIRESTORE'; payload: Partial<AppState> };
 
 
-// Create context
 interface AppContextType {
     state: AppState;
     dispatch: Dispatch<Action>;
@@ -50,7 +48,6 @@ interface AppContextType {
 
 export const AppContext = createContext<AppContextType>({} as AppContextType);
 
-// Initial State
 const initialState: AppState = {
     isAuthenticated: false,
     adminPassword: 'admin',
@@ -76,10 +73,8 @@ const initialState: AppState = {
     },
 };
 
-// Reducer
 const appReducer = (state: AppState, action: Action): AppState => {
     switch (action.type) {
-        // AUTH ACTIONS (Local State)
         case 'LOGIN':
             return { ...state, isAuthenticated: true, adminPassword: action.payload };
         case 'LOGOUT':
@@ -89,11 +84,10 @@ const appReducer = (state: AppState, action: Action): AppState => {
         case 'AFFILIATE_LOGOUT':
             return { ...state, currentAffiliate: null };
         
-        // FIRESTORE-DRIVEN STATE UPDATES
         case 'SET_STATE_FROM_FIRESTORE':
+            // This is the only way state objects get updated from the database
             return { ...state, ...action.payload };
 
-        // ACTIONS THAT WRITE TO FIRESTORE
         case 'ADD_OR_UPDATE_USER':
             db.collection("users").doc(action.payload.phone).set(action.payload, { merge: true });
             return state;
@@ -108,14 +102,14 @@ const appReducer = (state: AppState, action: Action): AppState => {
         }
 
         case 'UPDATE_ORDER_STATUS': {
-            const { order, status } = action.payload;
-            db.collection("orders").doc(order.id).update({ status });
+            const { orderId, status, quantity, affiliateId } = action.payload;
+            db.collection("orders").doc(orderId).update({ status });
 
             if (status === OrderStatus.Finished) {
-                db.collection("affiliates").doc(order.affiliateId).update({ inventory: increment(-order.quantity) });
+                db.collection("affiliates").doc(affiliateId).update({ inventory: increment(-quantity) });
             }
             
-            const referral = state.referrals.find(r => r.refereeOrderId === order.id);
+            const referral = state.referrals.find(r => r.refereeOrderId === orderId);
             if(referral) {
                  let newStatus = referral.status;
                  if (status === OrderStatus.Cancelled) newStatus = ReferralStatus.Cancelled;
@@ -136,14 +130,14 @@ const appReducer = (state: AppState, action: Action): AppState => {
         }
 
         case 'COMPLETE_REFERRAL': {
-            const { referral, couponCode } = action.payload;
-            db.collection("referrals").doc(referral.id).update({ status: ReferralStatus.Completed });
+            const { referralId, couponCode, referrerPhone } = action.payload;
+            db.collection("referrals").doc(referralId).update({ status: ReferralStatus.Completed });
 
             const newCoupon: Omit<Coupon, 'code'> & { code: string } = {
                 code: couponCode,
                 isUsed: false,
                 rewardAmount: REWARD_TORTILLAS * state.tortillaPrice,
-                generatedForPhone: referral.referrerPhone,
+                generatedForPhone: referrerPhone,
                 isActive: true
             };
             db.collection("coupons").doc(couponCode).set(newCoupon);
@@ -151,7 +145,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
         }
 
         case 'TOGGLE_COUPON_STATUS':
-            db.collection("coupons").doc(action.payload.coupon.code).update({ isActive: !action.payload.coupon.isActive });
+            db.collection("coupons").doc(action.payload.couponCode).update({ isActive: !action.payload.isActive });
             return state;
 
         case 'DELETE_COUPON':
@@ -169,7 +163,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
             return state;
         
         case 'TOGGLE_AFFILIATE_DELIVERY':
-            db.collection("affiliates").doc(action.payload.affiliate.id).update({ hasDeliveryService: !action.payload.affiliate.hasDeliveryService });
+            db.collection("affiliates").doc(action.payload.affiliateId).update({ hasDeliveryService: !action.payload.hasDeliveryService });
             return state;
 
         case 'UPDATE_AFFILIATE_SETTINGS':
@@ -190,9 +184,9 @@ const appReducer = (state: AppState, action: Action): AppState => {
             return state;
 
         case 'TOGGLE_TEMPORARY_CLOSED': {
-            const { affiliate } = action.payload;
-            db.collection("affiliates").doc(affiliate.id).update({ isTemporarilyClosed: !affiliate.isTemporarilyClosed });
-            const message = !affiliate.isTemporarilyClosed ? 'Has cerrado tu tienda temporalmente.' : '¡Has abierto tu tienda! Ya puedes recibir pedidos.';
+            const { affiliateId, isTemporarilyClosed } = action.payload;
+            db.collection("affiliates").doc(affiliateId).update({ isTemporarilyClosed: !isTemporarilyClosed });
+            const message = !isTemporarilyClosed ? 'Has cerrado tu tienda temporalmente.' : '¡Has abierto tu tienda! Ya puedes recibir pedidos.';
             return { ...state, successMessage: message };
         }
         
@@ -214,11 +208,12 @@ const appReducer = (state: AppState, action: Action): AppState => {
             return state;
 
         case 'AFFILIATE_CONFIRM_INVENTORY_CHANGE': {
-            const { change } = action.payload;
-            if (change.status !== InventoryChangeStatus.Approved) return state;
+            const { changeId, affiliateId, amount } = action.payload;
+            const change = state.inventoryChanges.find(c => c.id === changeId);
+            if (!change || change.status !== InventoryChangeStatus.Approved) return state;
 
-            db.collection("inventoryChanges").doc(change.id).update({ status: InventoryChangeStatus.Completed });
-            db.collection("affiliates").doc(change.affiliateId).update({ inventory: increment(change.amount) });
+            db.collection("inventoryChanges").doc(changeId).update({ status: InventoryChangeStatus.Completed });
+            db.collection("affiliates").doc(affiliateId).update({ inventory: increment(amount) });
             return { ...state, successMessage: 'Inventario confirmado y actualizado.' };
         }
 
@@ -248,7 +243,6 @@ const appReducer = (state: AppState, action: Action): AppState => {
             db.collection("settings").doc("main").set(action.payload, { merge: true });
             return state;
 
-        // UI-ONLY ACTIONS
         case 'SET_SUCCESS_MESSAGE':
             return { ...state, successMessage: action.payload };
         case 'CLEAR_SUCCESS_MESSAGE':
@@ -264,10 +258,11 @@ const appReducer = (state: AppState, action: Action): AppState => {
     }
 };
 
-// Provider Component
 const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
+    // Initialize state directly, WITHOUT loading from localStorage
     const [state, dispatch] = useReducer(appReducer, initialState);
 
+    // This useEffect is now the SINGLE SOURCE OF TRUTH for state updates
     useEffect(() => {
         console.log("Setting up Firestore listeners...");
 
@@ -294,7 +289,7 @@ const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
                         dispatch({ type: 'SET_STATE_FROM_FIRESTORE', payload: settingsData });
                     }
                 } else {
-                    // Initialize settings if they don't exist
+                    // Initialize settings in Firestore if they don't exist
                     const initialSettings = {
                         adminPassword: initialState.adminPassword,
                         adminPhoneNumber: initialState.adminPhoneNumber,
@@ -305,16 +300,16 @@ const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
                         tabVisibility: initialState.tabVisibility,
                     };
                     db.collection("settings").doc("main").set(initialSettings);
-                    dispatch({ type: 'SET_STATE_FROM_FIRESTORE', payload: initialSettings });
                 }
             })
         ];
 
+        // Cleanup function to unsubscribe from listeners when the component unmounts
         return () => {
             console.log("Cleaning up Firestore listeners.");
             unsubs.forEach(unsub => unsub());
         };
-    }, []);
+    }, []); // Empty dependency array means this runs only once on mount
 
     return (
         <AppContext.Provider value={{ state, dispatch }}>

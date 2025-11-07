@@ -1,12 +1,10 @@
 import React, { useState, useContext, useMemo, useEffect } from 'react';
-import { AppContext } from '../context/AppContext';
+import { AppContext } from '../state/AppContext';
 import { Order, OrderStatus, PaymentMethod, InventoryChangeStatus, Affiliate, CashOutStatus, CashOut, InventoryChange } from '../types';
 import StatCard from './StatCard';
 import CashIcon from './icons/CashIcon';
 import ClipboardDocumentListIcon from './icons/ClipboardDocumentListIcon';
 import ChartBarIcon from './icons/ChartBarIcon';
-import CheckCircleIcon from './icons/CheckCircleIcon';
-import XCircleIcon from './icons/XCircleIcon';
 import ClockIcon from './icons/ClockIcon';
 import StoreIcon from './icons/StoreIcon';
 import CogIcon from './icons/CogIcon';
@@ -14,7 +12,6 @@ import ImagePreviewModal from './ImagePreviewModal';
 import CurrencyDollarIcon from './icons/CurrencyDollarIcon';
 import WhatsAppIcon from './icons/WhatsAppIcon';
 import ArchiveBoxIcon from './icons/ArchiveBoxIcon';
-import InformationCircleIcon from './icons/InformationCircleIcon';
 import ExclamationTriangleIcon from './icons/ExclamationTriangleIcon';
 
 
@@ -236,12 +233,10 @@ const AffiliateView: React.FC = () => {
     const [showBankSuccess, setShowBankSuccess] = useState(false);
     const [currentTime, setCurrentTime] = useState(Date.now());
 
-    // This effect creates an interval that updates the current time every minute.
-    // This is used to re-render the component and check if the "Notify Admin" button should be displayed.
     useEffect(() => {
         const timer = setInterval(() => {
             setCurrentTime(Date.now());
-        }, 60000); // Update every 60 seconds
+        }, 60000);
         return () => clearInterval(timer);
     }, []);
 
@@ -325,19 +320,15 @@ const AffiliateView: React.FC = () => {
     }
 
     const handleUpdateOrderStatus = (order: Order, status: OrderStatus) => {
-        dispatch({ type: 'UPDATE_ORDER_STATUS', payload: { order, status } });
+        dispatch({ type: 'UPDATE_ORDER_STATUS', payload: { orderId: order.id, status, quantity: order.quantity, affiliateId: order.affiliateId } });
     };
 
     const handleToggleDelivery = () => {
-        if (currentAffiliateData) {
-            dispatch({ type: 'TOGGLE_AFFILIATE_DELIVERY', payload: { affiliate: currentAffiliateData } });
-        }
+        dispatch({ type: 'TOGGLE_AFFILIATE_DELIVERY', payload: { affiliateId: currentAffiliateData.id, hasDeliveryService: currentAffiliateData.hasDeliveryService } });
     };
     
     const handleToggleTemporaryClosed = () => {
-        if(currentAffiliateData) {
-            dispatch({ type: 'TOGGLE_TEMPORARY_CLOSED', payload: { affiliate: currentAffiliateData } });
-        }
+        dispatch({ type: 'TOGGLE_TEMPORARY_CLOSED', payload: { affiliateId: currentAffiliateData.id, isTemporarilyClosed: currentAffiliateData.isTemporarilyClosed } });
     };
 
     const handleScheduleChange = (day: string, field: 'isOpen' | 'openTime' | 'closeTime', value: any) => {
@@ -356,7 +347,6 @@ const AffiliateView: React.FC = () => {
     const handleSaveChanges = () => {
         const cost = parseFloat(editedDeliveryCost);
         if (isNaN(cost) || cost < 0) {
-            // Future improvement: Show an error to the user
             return;
         }
         dispatch({
@@ -420,7 +410,6 @@ const AffiliateView: React.FC = () => {
     };
 
     const handleNotifyAdminForInventory = (amount: number) => {
-        if (!currentAffiliate) return;
         const message = `Hola, ¡ayuda por favor! Tengo un pedido urgente y solicité *${amount} tortillas* para poder surtirlo. ¿Podrías aprobar mi solicitud de inventario? ¡Gracias!`;
         const whatsappUrl = `https://wa.me/52${state.adminPhoneNumber}?text=${encodeURIComponent(message)}`;
         window.open(whatsappUrl, '_blank');
@@ -432,35 +421,13 @@ const AffiliateView: React.FC = () => {
         }
     };
 
-    const handleConfirmInventoryChange = (change: InventoryChange) => {
-         dispatch({ type: 'AFFILIATE_CONFIRM_INVENTORY_CHANGE', payload: { change } });
-    }
-
     const renderDashboard = () => {
         const isOpen = isAffiliateCurrentlyOpen(currentAffiliateData);
         const hasPendingRequest = inventoryChanges.some(c => c.status === InventoryChangeStatus.Pending && c.amount > 0);
-        const pendingDeliveries = inventoryChanges.filter(c => c.status === InventoryChangeStatus.Approved);
         return (
             <div className="space-y-6">
-                 {pendingDeliveries.length > 0 && (
-                    <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-800 p-4 rounded-md shadow-sm" role="alert">
-                       <div className="flex">
-                           <div className="py-1"><InformationCircleIcon className="h-6 w-6 mr-4" /></div>
-                           <div>
-                               <p className="font-bold">¡Tienes entregas de inventario pendientes!</p>
-                               <p className="text-sm mb-2">El administrador aprobó {pendingDeliveries.length} solicitud(es). Ve a la pestaña de inventario para confirmar que las has recibido.</p>
-                               <button
-                                   onClick={() => setActiveTab('inventory')}
-                                   className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-3 rounded text-sm transition-colors shadow-sm"
-                               >
-                                   Ir a Inventario
-                               </button>
-                           </div>
-                       </div>
-                   </div>
-                )}
                 {lowInventoryOrders.length > 0 && (
-                    <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md shadow-sm" role="alert">
+                    <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md shadow-sm mb-6" role="alert">
                         <div className="flex">
                             <div className="py-1"><ExclamationTriangleIcon className="h-6 w-6 text-red-500 mr-4" /></div>
                             <div>
@@ -476,8 +443,8 @@ const AffiliateView: React.FC = () => {
                         </div>
                     </div>
                 )}
-                {currentAffiliateData.inventory <= 20 && lowInventoryOrders.length === 0 && (
-                     <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-md shadow-sm" role="alert">
+                {currentAffiliateData.inventory <= 20 && (
+                     <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-md shadow-sm mb-6" role="alert">
                         <div className="flex">
                             <div className="py-1">
                                 <svg className="fill-current h-6 w-6 text-yellow-500 mr-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M2.93 17.07A10 10 0 1 1 17.07 2.93 10 10 0 0 1 2.93 17.07zM9 13h2v-2H9v2zm0-4h2V5H9v4z"/></svg>
@@ -711,7 +678,6 @@ const AffiliateView: React.FC = () => {
                         {activeOrders.length > 0 ? activeOrders.slice().sort((a,b) => b.timestamp - a.timestamp).map(order => {
                             const showNotifyButton = order.status === OrderStatus.PendingConfirmation && (currentTime - order.timestamp) > 10 * 60 * 1000;
                             
-                            // Recalculate from ground truth for robustness
                             const subtotal = order.quantity * state.tortillaPrice;
                             const deliveryFee = Number(order.deliveryFeeApplied || 0);
                             const discount = Number(order.discountApplied || 0);
@@ -937,7 +903,7 @@ const AffiliateView: React.FC = () => {
                                 <span className={`px-2 py-1 rounded-full text-xs font-semibold self-center sm:self-auto ${getStatusClass(change.status)}`}>{change.status}</span>
                                 {change.status === InventoryChangeStatus.Approved && (
                                     <button 
-                                        onClick={() => handleConfirmInventoryChange(change)}
+                                        onClick={() => dispatch({ type: 'AFFILIATE_CONFIRM_INVENTORY_CHANGE', payload: { changeId: change.id, affiliateId: change.affiliateId, amount: change.amount } })}
                                         className="bg-green-500 text-white px-3 py-1 rounded text-sm font-semibold"
                                     >
                                         Confirmar Recibido
