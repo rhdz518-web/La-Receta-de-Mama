@@ -1,8 +1,8 @@
 import React, { useState, useContext, useRef } from 'react';
 import { AppProvider, AppContext } from './context/AppContext.tsx';
 import CustomerView from './components/CustomerView.tsx';
-// FIX: Changed to a named import to resolve the module loading error.
-import { AdminView } from './components/AdminView.tsx';
+// FIX: Changed to a default import to resolve the module loading error.
+import AdminView from './components/AdminView.tsx';
 import AdminLogin from './components/AdminLogin.tsx';
 import AffiliateLogin from './components/AffiliateLogin.tsx';
 import AffiliateView from './components/AffiliateView.tsx';
