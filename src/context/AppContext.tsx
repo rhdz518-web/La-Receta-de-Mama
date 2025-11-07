@@ -2,7 +2,8 @@ import React, { createContext, useReducer, useEffect, Dispatch, ReactNode } from
 import { AppState, Order, Affiliate, InventoryChange, OrderStatus, AffiliateStatus, InventoryChangeStatus, Referral, Coupon, ReferralStatus, User, CashOut, CashOutStatus } from '../types';
 import { DEFAULT_COMMISSION_PER_TORTILLA_CENTS, REWARD_TORTILLAS, TORTILLA_PRICE } from '../constants';
 import { db, increment } from '../firebase';
-import { collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, writeBatch } from "firebase/firestore";
+// FIX: Removed Firebase v9 modular imports as the project uses v8 syntax.
+// import { collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, writeBatch } from "firebase/firestore";
 
 
 // Define action types
@@ -94,26 +95,29 @@ const appReducer = (state: AppState, action: Action): AppState => {
 
         // ACTIONS THAT WRITE TO FIRESTORE
         case 'ADD_OR_UPDATE_USER':
-            setDoc(doc(db, "users", action.payload.phone), action.payload, { merge: true });
+            // FIX: Refactored to Firebase v8 syntax.
+            db.collection("users").doc(action.payload.phone).set(action.payload, { merge: true });
             return state;
         
         case 'ADD_ORDER': {
             const { id, ...orderData } = action.payload;
-            setDoc(doc(db, "orders", id), orderData);
+            // FIX: Refactored to Firebase v8 syntax.
+            db.collection("orders").doc(id).set(orderData);
             if (action.payload.couponUsed) {
-                updateDoc(doc(db, "coupons", action.payload.couponUsed), { isUsed: true });
+                // FIX: Refactored to Firebase v8 syntax.
+                db.collection("coupons").doc(action.payload.couponUsed).update({ isUsed: true });
             }
             return state;
         }
 
         case 'UPDATE_ORDER_STATUS': {
             const { order, status } = action.payload;
-            const orderRef = doc(db, "orders", order.id);
-            updateDoc(orderRef, { status });
+            // FIX: Refactored to Firebase v8 syntax.
+            db.collection("orders").doc(order.id).update({ status });
 
             if (status === OrderStatus.Finished) {
-                const affiliateRef = doc(db, "affiliates", order.affiliateId);
-                updateDoc(affiliateRef, { inventory: increment(-order.quantity) });
+                // FIX: Refactored to Firebase v8 syntax.
+                db.collection("affiliates").doc(order.affiliateId).update({ inventory: increment(-order.quantity) });
             }
             
             const referral = state.referrals.find(r => r.refereeOrderId === order.id);
@@ -121,24 +125,28 @@ const appReducer = (state: AppState, action: Action): AppState => {
                  let newStatus = referral.status;
                  if (status === OrderStatus.Cancelled) newStatus = ReferralStatus.Cancelled;
                  else if (status === OrderStatus.Active && referral.status === ReferralStatus.Cancelled) newStatus = ReferralStatus.ActiveOrder;
-                 updateDoc(doc(db, "referrals", referral.id), { status: newStatus });
+                 // FIX: Refactored to Firebase v8 syntax.
+                 db.collection("referrals").doc(referral.id).update({ status: newStatus });
             }
             return state;
         }
 
         case 'CONFIRM_TRANSFER_PAYMENT':
-            updateDoc(doc(db, "orders", action.payload.orderId), { status: OrderStatus.Active });
+            // FIX: Refactored to Firebase v8 syntax.
+            db.collection("orders").doc(action.payload.orderId).update({ status: OrderStatus.Active });
             return { ...state, successMessage: `Pago del pedido confirmado. El vendedor puede proceder.` };
 
         case 'ADD_REFERRAL': {
             const { id, ...referralData } = action.payload;
-            setDoc(doc(db, "referrals", id), referralData);
+            // FIX: Refactored to Firebase v8 syntax.
+            db.collection("referrals").doc(id).set(referralData);
             return state;
         }
 
         case 'COMPLETE_REFERRAL': {
             const { referral, couponCode } = action.payload;
-            updateDoc(doc(db, "referrals", referral.id), { status: ReferralStatus.Completed });
+            // FIX: Refactored to Firebase v8 syntax.
+            db.collection("referrals").doc(referral.id).update({ status: ReferralStatus.Completed });
 
             const newCoupon: Omit<Coupon, 'code'> & { code: string } = {
                 code: couponCode,
@@ -147,63 +155,75 @@ const appReducer = (state: AppState, action: Action): AppState => {
                 generatedForPhone: referral.referrerPhone,
                 isActive: true
             };
-            setDoc(doc(db, "coupons", couponCode), newCoupon);
+            // FIX: Refactored to Firebase v8 syntax.
+            db.collection("coupons").doc(couponCode).set(newCoupon);
             return state;
         }
 
         case 'TOGGLE_COUPON_STATUS':
-            updateDoc(doc(db, "coupons", action.payload.coupon.code), { isActive: !action.payload.coupon.isActive });
+            // FIX: Refactored to Firebase v8 syntax.
+            db.collection("coupons").doc(action.payload.coupon.code).update({ isActive: !action.payload.coupon.isActive });
             return state;
 
         case 'DELETE_COUPON':
-            deleteDoc(doc(db, "coupons", action.payload.couponCode));
+            // FIX: Refactored to Firebase v8 syntax.
+            db.collection("coupons").doc(action.payload.couponCode).delete();
             return { ...state, successMessage: `Cupón "${action.payload.couponCode}" eliminado.` };
 
         case 'APPLY_FOR_AFFILIATE': {
             const { id, ...affiliateData } = action.payload;
-            setDoc(doc(db, "affiliates", id), affiliateData);
+            // FIX: Refactored to Firebase v8 syntax.
+            db.collection("affiliates").doc(id).set(affiliateData);
             return state;
         }
 
         case 'UPDATE_AFFILIATE_STATUS':
-            updateDoc(doc(db, "affiliates", action.payload.affiliateId), { status: action.payload.status });
+            // FIX: Refactored to Firebase v8 syntax.
+            db.collection("affiliates").doc(action.payload.affiliateId).update({ status: action.payload.status });
             return state;
         
         case 'TOGGLE_AFFILIATE_DELIVERY':
-            updateDoc(doc(db, "affiliates", action.payload.affiliate.id), { hasDeliveryService: !action.payload.affiliate.hasDeliveryService });
+            // FIX: Refactored to Firebase v8 syntax.
+            db.collection("affiliates").doc(action.payload.affiliate.id).update({ hasDeliveryService: !action.payload.affiliate.hasDeliveryService });
             return state;
 
         case 'UPDATE_AFFILIATE_SETTINGS':
-            updateDoc(doc(db, "affiliates", action.payload.affiliateId), {
+            // FIX: Refactored to Firebase v8 syntax.
+            db.collection("affiliates").doc(action.payload.affiliateId).update({
                 address: action.payload.address,
                 deliveryCost: action.payload.deliveryCost
             });
             return state;
 
         case 'UPDATE_AFFILIATE_BANK_DETAILS':
-            updateDoc(doc(db, "affiliates", action.payload.affiliateId), {
+            // FIX: Refactored to Firebase v8 syntax.
+            db.collection("affiliates").doc(action.payload.affiliateId).update({
                 bankDetails: action.payload.bankDetails
             });
             return state;
 
         case 'UPDATE_AFFILIATE_SCHEDULE':
-             updateDoc(doc(db, "affiliates", action.payload.affiliateId), { schedule: action.payload.schedule });
+            // FIX: Refactored to Firebase v8 syntax.
+             db.collection("affiliates").doc(action.payload.affiliateId).update({ schedule: action.payload.schedule });
             return state;
 
         case 'TOGGLE_TEMPORARY_CLOSED': {
             const { affiliate } = action.payload;
-            updateDoc(doc(db, "affiliates", affiliate.id), { isTemporarilyClosed: !affiliate.isTemporarilyClosed });
+            // FIX: Refactored to Firebase v8 syntax.
+            db.collection("affiliates").doc(affiliate.id).update({ isTemporarilyClosed: !affiliate.isTemporarilyClosed });
             const message = !affiliate.isTemporarilyClosed ? 'Has cerrado tu tienda temporalmente.' : '¡Has abierto tu tienda! Ya puedes recibir pedidos.';
             return { ...state, successMessage: message };
         }
         
         case 'DELETE_AFFILIATE':
-            deleteDoc(doc(db, "affiliates", action.payload.affiliateId));
+            // FIX: Refactored to Firebase v8 syntax.
+            db.collection("affiliates").doc(action.payload.affiliateId).delete();
             return { ...state, successMessage: `Vendedor eliminado con éxito.` };
 
         case 'ADD_INVENTORY_CHANGE': {
             const { id, ...changeData } = action.payload;
-            setDoc(doc(db, "inventoryChanges", id), changeData);
+            // FIX: Refactored to Firebase v8 syntax.
+            db.collection("inventoryChanges").doc(id).set(changeData);
             if (changeData.status !== InventoryChangeStatus.Pending) { // Admin adjustment
                  return { ...state, successMessage: 'Ajuste de inventario enviado para confirmación del vendedor.' };
             }
@@ -211,29 +231,36 @@ const appReducer = (state: AppState, action: Action): AppState => {
         }
         
         case 'RESOLVE_INVENTORY_CHANGE':
-            updateDoc(doc(db, "inventoryChanges", action.payload.changeId), { status: action.payload.status });
+            // FIX: Refactored to Firebase v8 syntax.
+            db.collection("inventoryChanges").doc(action.payload.changeId).update({ status: action.payload.status });
             return state;
 
         case 'AFFILIATE_CONFIRM_INVENTORY_CHANGE': {
             const { change } = action.payload;
             if (change.status !== InventoryChangeStatus.Approved) return state;
 
-            updateDoc(doc(db, "inventoryChanges", change.id), { status: InventoryChangeStatus.Completed });
-            updateDoc(doc(db, "affiliates", change.affiliateId), { inventory: increment(change.amount) });
+            // FIX: Refactored to Firebase v8 syntax.
+            db.collection("inventoryChanges").doc(change.id).update({ status: InventoryChangeStatus.Completed });
+            // FIX: Refactored to Firebase v8 syntax.
+            db.collection("affiliates").doc(change.affiliateId).update({ inventory: increment(change.amount) });
             return { ...state, successMessage: 'Inventario confirmado y actualizado.' };
         }
 
         case 'CANCEL_INVENTORY_REQUEST':
-            deleteDoc(doc(db, "inventoryChanges", action.payload.changeId));
+            // FIX: Refactored to Firebase v8 syntax.
+            db.collection("inventoryChanges").doc(action.payload.changeId).delete();
             return { ...state, successMessage: 'Solicitud de inventario cancelada.' };
             
         case 'PERFORM_CASHOUT': {
             const { id, ...cashOutData } = action.payload;
-            setDoc(doc(db, "cashOuts", id), cashOutData);
+            // FIX: Refactored to Firebase v8 syntax.
+            db.collection("cashOuts").doc(id).set(cashOutData);
 
-            const batch = writeBatch(db);
+            // FIX: Refactored to Firebase v8 syntax.
+            const batch = db.batch();
             cashOutData.ordersCoveredIds.forEach(orderId => {
-                const orderRef = doc(db, "orders", orderId);
+                // FIX: Refactored to Firebase v8 syntax.
+                const orderRef = db.collection("orders").doc(orderId);
                 batch.update(orderRef, { settledInCashOutId: id });
             });
             batch.commit();
@@ -242,11 +269,13 @@ const appReducer = (state: AppState, action: Action): AppState => {
         }
         
         case 'AFFILIATE_CONFIRM_CASHOUT':
-            updateDoc(doc(db, "cashOuts", action.payload.cashOutId), { status: CashOutStatus.Completed });
+            // FIX: Refactored to Firebase v8 syntax.
+            db.collection("cashOuts").doc(action.payload.cashOutId).update({ status: CashOutStatus.Completed });
              return { ...state, successMessage: 'Recepción de transferencia confirmada.' };
 
         case 'UPDATE_SETTINGS':
-            setDoc(doc(db, "settings", "main"), action.payload, { merge: true });
+            // FIX: Refactored to Firebase v8 syntax.
+            db.collection("settings").doc("main").set(action.payload, { merge: true });
             return state;
 
         // UI-ONLY ACTIONS
@@ -278,20 +307,25 @@ const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         };
         
         const unsubs = [
-            onSnapshot(collection(db, 'affiliates'), (snap) => processSnapshot(snap, 'affiliates')),
-            onSnapshot(collection(db, 'orders'), (snap) => processSnapshot(snap, 'orders')),
-            onSnapshot(collection(db, 'users'), (snap) => processSnapshot(snap, 'users')),
-            onSnapshot(collection(db, 'referrals'), (snap) => processSnapshot(snap, 'referrals')),
-            onSnapshot(collection(db, 'coupons'), (snap) => processSnapshot(snap, 'coupons')),
-            onSnapshot(collection(db, 'inventoryChanges'), (snap) => processSnapshot(snap, 'inventoryChanges')),
-            onSnapshot(collection(db, 'cashOuts'), (snap) => processSnapshot(snap, 'cashOuts')),
-            onSnapshot(doc(db, "settings", "main"), (doc) => {
-                if (doc.exists()) {
+            // FIX: Refactored to Firebase v8 syntax.
+            db.collection('affiliates').onSnapshot((snap) => processSnapshot(snap, 'affiliates')),
+            db.collection('orders').onSnapshot((snap) => processSnapshot(snap, 'orders')),
+            db.collection('users').onSnapshot((snap) => processSnapshot(snap, 'users')),
+            db.collection('referrals').onSnapshot((snap) => processSnapshot(snap, 'referrals')),
+            db.collection('coupons').onSnapshot((snap) => processSnapshot(snap, 'coupons')),
+            db.collection('inventoryChanges').onSnapshot((snap) => processSnapshot(snap, 'inventoryChanges')),
+            db.collection('cashOuts').onSnapshot((snap) => processSnapshot(snap, 'cashOuts')),
+            // FIX: Refactored to Firebase v8 syntax.
+            db.collection("settings").doc("main").onSnapshot((doc) => {
+                // FIX: Refactored to Firebase v8 syntax (doc.exists property).
+                if (doc.exists) {
                     const settingsData = doc.data();
-                    // Ensure auth state is not overwritten from DB
-                    delete settingsData.isAuthenticated;
-                    delete settingsData.currentAffiliate;
-                    dispatch({ type: 'SET_STATE_FROM_FIRESTORE', payload: settingsData });
+                    if (settingsData) {
+                        // Ensure auth state is not overwritten from DB
+                        delete settingsData.isAuthenticated;
+                        delete settingsData.currentAffiliate;
+                        dispatch({ type: 'SET_STATE_FROM_FIRESTORE', payload: settingsData });
+                    }
                 } else {
                     // Initialize settings if they don't exist
                     const initialSettings = {
@@ -303,7 +337,8 @@ const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
                         tortillaPrice: initialState.tortillaPrice,
                         tabVisibility: initialState.tabVisibility,
                     };
-                    setDoc(doc(db, "settings", "main"), initialSettings);
+                    // FIX: Refactored to Firebase v8 syntax.
+                    db.collection("settings").doc("main").set(initialSettings);
                     dispatch({ type: 'SET_STATE_FROM_FIRESTORE', payload: initialSettings });
                 }
             })

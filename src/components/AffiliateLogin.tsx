@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
-import { AppContext } from '../context/AppContext.tsx';
-import { AffiliateStatus } from '../types.ts';
+import { AppContext } from '../context/AppContext';
+import { AffiliateStatus } from '../types';
 
 interface AffiliateLoginProps {
   onClose: () => void;

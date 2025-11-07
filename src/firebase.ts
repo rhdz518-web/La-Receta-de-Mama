@@ -1,6 +1,6 @@
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getFirestore, increment as firestoreIncrement } from "firebase/firestore";
+// FIX: Refactored to use Firebase v8 syntax to resolve import errors.
+import firebase from "firebase/app";
+import "firebase/firestore";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -14,8 +14,11 @@ const firebaseConfig = {
 
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
 
 // Export firestore instance and helpers
-export const db = getFirestore(app);
-export const increment = firestoreIncrement;
+export const db = firebase.firestore();
+// FIX: Export FieldValue.increment for atomic server-side increments.
+export const increment = firebase.firestore.FieldValue.increment;

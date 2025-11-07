@@ -365,18 +365,22 @@ const AffiliatesView: React.FC<{ state: AppState, dispatch: React.Dispatch<any>,
             !o.settledInCashOutId
         );
 
+        // Display values
         const totalSales = finishedOrders.reduce((sum, o) => sum + o.totalCost + (o.deliveryFeeApplied || 0) - (o.discountApplied || 0), 0);
         const cashOrders = finishedOrders.filter(o => o.paymentMethod === PaymentMethod.Cash);
         const cashSales = cashOrders.reduce((sum, o) => sum + o.totalCost + (o.deliveryFeeApplied || 0) - (o.discountApplied || 0), 0);
         const transferSales = totalSales - cashSales;
         const commission = finishedOrders.reduce((sum, o) => sum + (o.quantity * state.affiliateCommissionPerTortilla) / 100, 0);
 
+        // Correct Balance Calculation
         let balance = 0;
         finishedOrders.forEach(order => {
             const orderCommission = (order.quantity * state.affiliateCommissionPerTortilla) / 100;
             if (order.paymentMethod === PaymentMethod.Cash) {
+                // Affiliate owes admin the subtotal minus their commission
                 balance += (order.totalCost - (order.discountApplied || 0)) - orderCommission;
             } else { // Transfer
+                // Admin owes affiliate their commission plus any delivery fee
                 balance -= orderCommission + (order.deliveryFeeApplied || 0);
             }
         });
@@ -391,7 +395,7 @@ const AffiliatesView: React.FC<{ state: AppState, dispatch: React.Dispatch<any>,
     const sortedAffiliates = useMemo(() => {
         return state.affiliates
             .filter(a => a.status !== AffiliateStatus.Pending)
-            .slice()
+            .slice() // Create a shallow copy to avoid mutating state directly
             .sort((a, b) => {
                 const aIsUrgent = urgentInventoryAffiliateIds.has(a.id);
                 const bIsUrgent = urgentInventoryAffiliateIds.has(b.id);

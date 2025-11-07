@@ -236,10 +236,12 @@ const AffiliateView: React.FC = () => {
     const [showBankSuccess, setShowBankSuccess] = useState(false);
     const [currentTime, setCurrentTime] = useState(Date.now());
 
+    // This effect creates an interval that updates the current time every minute.
+    // This is used to re-render the component and check if the "Notify Admin" button should be displayed.
     useEffect(() => {
         const timer = setInterval(() => {
             setCurrentTime(Date.now());
-        }, 60000); 
+        }, 60000); // Update every 60 seconds
         return () => clearInterval(timer);
     }, []);
 
@@ -353,15 +355,25 @@ const AffiliateView: React.FC = () => {
 
     const handleSaveChanges = () => {
         const cost = parseFloat(editedDeliveryCost);
-        if (isNaN(cost) || cost < 0) { return; }
+        if (isNaN(cost) || cost < 0) {
+            // Future improvement: Show an error to the user
+            return;
+        }
         dispatch({
             type: 'UPDATE_AFFILIATE_SETTINGS',
-            payload: { affiliateId: currentAffiliateData.id, address: editedAddress, deliveryCost: cost }
+            payload: {
+                affiliateId: currentAffiliateData.id,
+                address: editedAddress,
+                deliveryCost: cost
+            }
         });
         if (editedSchedule) {
             dispatch({ 
                 type: 'UPDATE_AFFILIATE_SCHEDULE', 
-                payload: { affiliateId: currentAffiliateData.id, schedule: editedSchedule }
+                payload: {
+                    affiliateId: currentAffiliateData.id,
+                    schedule: editedSchedule
+                }
             });
         }
         setShowSettingsSuccess(true);
@@ -371,7 +383,10 @@ const AffiliateView: React.FC = () => {
      const handleSaveBankDetails = () => {
         dispatch({
             type: 'UPDATE_AFFILIATE_BANK_DETAILS',
-            payload: { affiliateId: currentAffiliateData.id, bankDetails: editedBankDetails }
+            payload: {
+                affiliateId: currentAffiliateData.id,
+                bankDetails: editedBankDetails,
+            }
         });
         setShowBankSuccess(true);
         setTimeout(() => setShowBankSuccess(false), 3000);
@@ -543,6 +558,7 @@ const AffiliateView: React.FC = () => {
             <div className="bg-white p-6 rounded-xl shadow-md space-y-8">
                 <div>
                     <h3 className="text-2xl font-bold text-brand-dark mb-2">Ajustes de Vendedor</h3>
+                    {/* Quick Close Button */}
                     <div className="mt-6 p-4 rounded-lg bg-red-50 border border-red-200">
                         <div className="flex items-center justify-between">
                             <div>
@@ -563,6 +579,7 @@ const AffiliateView: React.FC = () => {
                     </div>
                 </div>
 
+                {/* Bank Details */}
                 <div className="pt-8 border-t">
                     <h4 className="text-xl font-bold text-brand-dark mb-4">Mis Datos Bancarios</h4>
                     <p className="text-sm text-gray-500 mb-4">Esta información se usará para que el administrador te pague tus comisiones y cobros por transferencia.</p>
@@ -586,6 +603,7 @@ const AffiliateView: React.FC = () => {
                     </button>
                 </div>
                 
+                {/* Schedule */}
                 <div className="pt-8 border-t">
                     <h4 className="text-xl font-bold text-brand-dark mb-4">Horario de la Tienda</h4>
                     <div className="space-y-3">
@@ -621,6 +639,7 @@ const AffiliateView: React.FC = () => {
                     </div>
                 </div>
 
+                {/* General Settings */}
                 <div className="space-y-4 pt-8 border-t">
                      <div>
                         <h4 className="text-xl font-bold text-brand-dark mb-4">Ajustes Generales</h4>
@@ -691,6 +710,8 @@ const AffiliateView: React.FC = () => {
                     <div className="space-y-4">
                         {activeOrders.length > 0 ? activeOrders.slice().sort((a,b) => b.timestamp - a.timestamp).map(order => {
                             const showNotifyButton = order.status === OrderStatus.PendingConfirmation && (currentTime - order.timestamp) > 10 * 60 * 1000;
+                            
+                            // Recalculate from ground truth for robustness
                             const subtotal = order.quantity * state.tortillaPrice;
                             const deliveryFee = Number(order.deliveryFeeApplied || 0);
                             const discount = Number(order.discountApplied || 0);
@@ -976,7 +997,7 @@ const AffiliateView: React.FC = () => {
                 <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-2">
                      <NavTabButton tabName="dashboard" icon={<ChartBarIcon className="w-5 h-5"/>}>Dashboard</NavTabButton>
                      <NavTabButton tabName="orders" icon={<ClipboardDocumentListIcon className="w-5 h-5"/>}>Pedidos</NavTabButton>
-                     <NavTabButton tabName="history" icon={<ArchiveBoxIcon className="w-5 h-5"/>}>Ventas Finalizadas</NavTabButton>
+                     <NavTabButton tabName="history" icon={<ArchiveBoxIcon className="w-5 h-5"/>}>Ventas</NavTabButton>
                      <NavTabButton tabName="cashouts" icon={<CurrencyDollarIcon className="w-5 h-5"/>}>Cortes de Caja</NavTabButton>
                      <NavTabButton tabName="inventory" icon={<StoreIcon className="w-5 h-5"/>}>Inventario</NavTabButton>
                      <NavTabButton tabName="settings" icon={<CogIcon className="w-5 h-5"/>}>Ajustes</NavTabButton>

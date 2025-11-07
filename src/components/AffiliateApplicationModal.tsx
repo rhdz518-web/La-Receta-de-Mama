@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
-import { AppContext } from '../context/AppContext.tsx';
-import { Affiliate, AffiliateStatus } from '../types.ts';
+import { AppContext } from '../context/AppContext';
+import { Affiliate, AffiliateStatus } from '../types';
 
 interface AffiliateApplicationModalProps {
   isVisible: boolean;

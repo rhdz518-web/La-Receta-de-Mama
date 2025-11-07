@@ -1,17 +1,17 @@
 import React, { useState, useContext, useEffect, useMemo, useRef, FC } from 'react';
-import { AppContext } from '../context/AppContext.tsx';
-import { Order, PaymentMethod, OrderStatus, ReferralStatus, User, Referral, AffiliateStatus, Affiliate } from '../types.ts';
-import { MIN_ORDER_FOR_REFERRAL, MIN_ORDER_FOR_COUPON, REWARD_TORTILLAS } from '../constants.ts';
-import { generateReferralCode } from '../utils.ts';
-import ConfirmationModal from './ConfirmationModal.tsx';
-import AffiliateApplicationModal from './AffiliateApplicationModal.tsx';
-import CashIcon from './icons/CashIcon.tsx';
-import CreditCardIcon from './icons/CreditCardIcon.tsx';
-import WhatsAppIcon from './icons/WhatsAppIcon.tsx';
-import GiftIcon from './icons/GiftIcon.tsx';
-import StoreIcon from './icons/StoreIcon.tsx';
-import TicketIcon from './icons/TicketIcon.tsx';
-import XCircleIcon from './icons/XCircleIcon.tsx';
+import { AppContext } from '../context/AppContext';
+import { Order, PaymentMethod, OrderStatus, ReferralStatus, User, Referral, AffiliateStatus, Affiliate } from '../types';
+import { MIN_ORDER_FOR_REFERRAL, MIN_ORDER_FOR_COUPON, REWARD_TORTILLAS } from '../constants';
+import { generateReferralCode } from '../utils';
+import ConfirmationModal from './ConfirmationModal';
+import AffiliateApplicationModal from './AffiliateApplicationModal';
+import CashIcon from './icons/CashIcon';
+import CreditCardIcon from './icons/CreditCardIcon';
+import WhatsAppIcon from './icons/WhatsAppIcon';
+import GiftIcon from './icons/GiftIcon';
+import StoreIcon from './icons/StoreIcon';
+import TicketIcon from './icons/TicketIcon';
+import XCircleIcon from './icons/XCircleIcon';
 
 interface CustomerViewProps {
   onAffiliateLoginClick: () => void;

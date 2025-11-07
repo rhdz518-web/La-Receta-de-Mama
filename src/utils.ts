@@ -1,4 +1,4 @@
-import { Order } from './types.ts';
+import { Order } from './types';
 
 export const generateReferralCode = (name: string, phone: string): string => {
     const namePart = name.trim().split(' ')[0].substring(0, 4).toUpperCase();

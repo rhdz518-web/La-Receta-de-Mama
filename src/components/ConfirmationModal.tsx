@@ -1,5 +1,5 @@
 import React from 'react';
-import { Order, PaymentMethod } from '../types.ts';
+import { Order, PaymentMethod } from '../types';
 
 interface ConfirmationModalProps {
   order: Order | null;
