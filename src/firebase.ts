@@ -1,6 +1,7 @@
 // FIX: Refactored to use Firebase v8 syntax to resolve import errors.
-import firebase from "firebase/app";
-import "firebase/firestore";
+// FIX: Switched to compat imports for Firebase v9 with v8 syntax.
+import firebase from "firebase/compat/app";
+import "firebase/compat/firestore";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
