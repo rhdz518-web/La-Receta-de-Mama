@@ -14,11 +14,11 @@ root.render(
   </React.StrictMode>
 );
 
-// Register service worker for offline capabilities
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    // Vite's base config is handled in vite.config.ts for deployment
-    const swUrl = `/sw.js`;
+    // Vite's base path needs to be considered for the SW path in production
+    // FIX: Cast `import.meta` to `any` to resolve TypeScript error about missing `env` property.
+    const swUrl = `${(import.meta as any).env.BASE_URL}sw.js`;
     navigator.serviceWorker.register(swUrl).then(registration => {
       console.log('Service Worker registered with scope: ', registration.scope);
     }).catch(registrationError => {

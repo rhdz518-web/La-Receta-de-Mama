@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect, useMemo, useRef } from 'react';
-import { AppContext } from '../state/AppContext';
+import { AppContext } from '../context/AppContext';
 import { Order, PaymentMethod, OrderStatus, ReferralStatus, User, Referral, AffiliateStatus, Affiliate } from '../types';
 import { MIN_ORDER_FOR_REFERRAL, MIN_ORDER_FOR_COUPON, REWARD_TORTILLAS } from '../constants';
 import { generateReferralCode } from '../utils';
@@ -83,7 +83,6 @@ const CustomerView: React.FC<CustomerViewProps> = ({ onAffiliateLoginClick }) =>
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<HTMLDivElement>(null);
 
-  // Form state
   const [customerName, setCustomerName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
@@ -92,11 +91,9 @@ const CustomerView: React.FC<CustomerViewProps> = ({ onAffiliateLoginClick }) =>
   const [cashPaid, setCashPaid] = useState<string>('');
   const [receiptImage, setReceiptImage] = useState<string | null>(null);
   
-  // State for referrals tab
   const [referralName, setReferralName] = useState('');
   const [referralPhone, setReferralPhone] = useState('');
 
-  // Codes state
   const [referralCodeUsed, setReferralCodeUsed] = useState('');
   const [couponUsed, setCouponUsed] = useState('');
   const [selectedAffiliateName, setSelectedAffiliateName] = useState('');
@@ -110,8 +107,6 @@ const CustomerView: React.FC<CustomerViewProps> = ({ onAffiliateLoginClick }) =>
   const [nextOpeningMessage, setNextOpeningMessage] = useState('');
   const [isLowInventory, setIsLowInventory] = useState(false);
 
-
-  // UI State
   const [activeTab, setActiveTab] = useState<'order' | 'referrals' | 'affiliates' | 'coupons'>('order');
   const [isConfirmationVisible, setConfirmationVisible] = useState(false);
   const [isAffiliateAppVisible, setAffiliateAppVisible] = useState(false);
@@ -121,7 +116,6 @@ const CustomerView: React.FC<CustomerViewProps> = ({ onAffiliateLoginClick }) =>
   const [orderSuccessMessage, setOrderSuccessMessage] = useState('');
   const [shareError, setShareError] = useState('');
 
-  // Coupon Tab State
   const [couponPhoneInput, setCouponPhoneInput] = useState('');
   const [currentCouponPhone, setCurrentCouponPhone] = useState<string | null>(null);
   const [couponLookupError, setCouponLookupError] = useState('');
@@ -269,7 +263,6 @@ const CustomerView: React.FC<CustomerViewProps> = ({ onAffiliateLoginClick }) =>
     let discountApplied = 0;
     const numQuantity = Number(quantity);
     
-    // Validate coupon
     let validCoupon = null;
     if (couponUsed.trim()) {
         validCoupon = state.coupons.find(c => c.code.toLowerCase() === couponUsed.trim().toLowerCase() && !c.isUsed && c.isActive);
@@ -282,7 +275,6 @@ const CustomerView: React.FC<CustomerViewProps> = ({ onAffiliateLoginClick }) =>
         }
     }
 
-    // Validate referral code
     if (referralCodeUsed.trim()) {
         if(couponUsed.trim()) {
             errors.referral = 'No puedes usar un código de referido y un cupón en el mismo pedido.';
@@ -301,7 +293,7 @@ const CustomerView: React.FC<CustomerViewProps> = ({ onAffiliateLoginClick }) =>
 
     errors.discount = discountApplied;
     setCodeErrors(errors);
-    if (Object.keys(errors).length > 1) return; // more than just discount
+    if (Object.keys(errors).length > 1) return;
 
     const finalAffiliate = selectedAffiliate;
     if (!finalAffiliate) return;

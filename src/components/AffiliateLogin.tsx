@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { AppContext } from '../state/AppContext';
+import { AppContext } from '../context/AppContext';
 import { AffiliateStatus } from '../types';
 
 interface AffiliateLoginProps {

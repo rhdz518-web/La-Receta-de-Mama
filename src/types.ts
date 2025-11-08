@@ -135,6 +135,7 @@ export interface TabVisibility {
     coupons: boolean;
 }
 
+// FIX: Define and export the AppState interface.
 export interface AppState {
     isAuthenticated: boolean;
     adminPassword: string;

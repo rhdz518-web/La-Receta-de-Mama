@@ -1,5 +1,6 @@
 import React, { useState, useContext, useMemo, useEffect } from 'react';
-import { AppContext } from '../state/AppContext';
+// FIX: Corrected import path for AppContext from '../state/AppContext' to '../context/AppContext'
+import { AppContext } from '../context/AppContext';
 import { AppState, Order, Affiliate, InventoryChange, OrderStatus, AffiliateStatus, InventoryChangeStatus, Referral, Coupon, ReferralStatus, PaymentMethod, TabVisibility, CashOut, CashOutStatus } from '../types';
 import StatCard from './StatCard';
 import CashIcon from './icons/CashIcon';
@@ -284,7 +285,6 @@ const OrdersView: React.FC<{ state: AppState, dispatch: React.Dispatch<any> }> =
                                 <div className="p-4 space-y-3">
                                     {orders.map(order => (
                                         <div key={order.id} className="border rounded-lg p-3">
-                                            {/* Order details here */}
                                             <p className="font-semibold text-gray-800">{order.customerName}</p>
                                             <p className="text-sm text-gray-500">{order.address}</p>
                                             <div className="flex justify-between items-center mt-2">
@@ -365,22 +365,18 @@ const AffiliatesView: React.FC<{ state: AppState, dispatch: React.Dispatch<any>,
             !o.settledInCashOutId
         );
 
-        // Display values
         const totalSales = finishedOrders.reduce((sum, o) => sum + o.totalCost + (o.deliveryFeeApplied || 0) - (o.discountApplied || 0), 0);
         const cashOrders = finishedOrders.filter(o => o.paymentMethod === PaymentMethod.Cash);
         const cashSales = cashOrders.reduce((sum, o) => sum + o.totalCost + (o.deliveryFeeApplied || 0) - (o.discountApplied || 0), 0);
         const transferSales = totalSales - cashSales;
         const commission = finishedOrders.reduce((sum, o) => sum + (o.quantity * state.affiliateCommissionPerTortilla) / 100, 0);
 
-        // Correct Balance Calculation
         let balance = 0;
         finishedOrders.forEach(order => {
             const orderCommission = (order.quantity * state.affiliateCommissionPerTortilla) / 100;
             if (order.paymentMethod === PaymentMethod.Cash) {
-                // Affiliate owes admin the subtotal minus their commission
                 balance += (order.totalCost - (order.discountApplied || 0)) - orderCommission;
-            } else { // Transfer
-                // Admin owes affiliate their commission plus any delivery fee
+            } else {
                 balance -= orderCommission + (order.deliveryFeeApplied || 0);
             }
         });
@@ -395,7 +391,7 @@ const AffiliatesView: React.FC<{ state: AppState, dispatch: React.Dispatch<any>,
     const sortedAffiliates = useMemo(() => {
         return state.affiliates
             .filter(a => a.status !== AffiliateStatus.Pending)
-            .slice() // Create a shallow copy to avoid mutating state directly
+            .slice()
             .sort((a, b) => {
                 const aIsUrgent = urgentInventoryAffiliateIds.has(a.id);
                 const bIsUrgent = urgentInventoryAffiliateIds.has(b.id);
@@ -469,7 +465,6 @@ const AffiliatesView: React.FC<{ state: AppState, dispatch: React.Dispatch<any>,
                                 </button>
                                 {openAffiliate === affiliate.id && (
                                     <div className="p-4 space-y-4">
-                                        {/* Pending Inventory Requests */}
                                         {pendingChanges.length > 0 && 
                                             <div className="border-b pb-4 border-blue-200 bg-blue-50 p-3 rounded-lg">
                                                 <h4 className="font-semibold text-blue-800 mb-2">Solicitudes de Inventario Pendientes</h4>
@@ -486,7 +481,6 @@ const AffiliatesView: React.FC<{ state: AppState, dispatch: React.Dispatch<any>,
                                                 )}
                                             </div>
                                         }
-                                        {/* Status Management */}
                                         <div className="border-b pb-4">
                                             <h4 className="font-semibold text-gray-700 mb-2">Gestionar Estado</h4>
                                             <div className="flex flex-wrap gap-2">
@@ -501,7 +495,6 @@ const AffiliatesView: React.FC<{ state: AppState, dispatch: React.Dispatch<any>,
                                                 )}
                                             </div>
                                         </div>
-                                        {/* Financial Summary */}
                                         <div>
                                             <h4 className="font-semibold text-gray-700 mb-2">Resumen Financiero (Pendiente de Corte)</h4>
                                             <div className="grid grid-cols-2 gap-3 text-sm">
@@ -516,7 +509,6 @@ const AffiliatesView: React.FC<{ state: AppState, dispatch: React.Dispatch<any>,
                                                  <div className="mt-3 bg-red-100 p-3 rounded-lg text-center"><strong className="text-red-800">Transferencia a Realizar (Corte):</strong> <span className="font-bold text-lg text-red-800">{formatCurrency(Math.abs(stats.balance))}</span></div>
                                             )}
                                         </div>
-                                        {/* Inventory Management */}
                                         <div className="border-t pt-4">
                                             <h4 className="font-semibold text-gray-700 mb-2">Ajuste Manual de Inventario</h4>
                                             <div className="flex gap-2 items-center">
@@ -868,12 +860,10 @@ const SettingsView: React.FC<{ state: AppState, dispatch: React.Dispatch<any> }>
     };
 
     const handleDownloadBackup = () => {
-        // This function is now disabled in the UI logic for Firestore version
-        dispatch({ type: 'SET_SUCCESS_MESSAGE', payload: 'La copia de seguridad está deshabilitada. Los datos están en la nube.' });
+        alert("La descarga de copias de seguridad está deshabilitada al usar la base de datos en la nube.");
     };
 
     const handleLoadBackup = (event: React.ChangeEvent<HTMLInputElement>) => {
-        // This function is now disabled in the UI logic for Firestore version
         dispatch({ type: 'LOAD_STATE' });
     };
     
@@ -956,15 +946,15 @@ const SettingsView: React.FC<{ state: AppState, dispatch: React.Dispatch<any> }>
             </div>
              <div>
                 <h3 className="text-2xl font-bold text-brand-dark mb-4">Copia de Seguridad y Restauración</h3>
-                 <p className="text-sm text-gray-500 mb-2">Estas funciones están deshabilitadas. Todos tus datos se guardan y respaldan automáticamente en la nube.</p>
                 <div className="flex gap-4">
-                    <button disabled className="flex-1 bg-blue-300 text-white px-4 py-2 rounded-md font-semibold flex items-center justify-center gap-2 cursor-not-allowed"><ArrowDownTrayIcon className="w-5 h-5"/>Descargar Copia</button>
-                    <label className="flex-1 bg-gray-400 text-white px-4 py-2 rounded-md font-semibold cursor-not-allowed flex items-center justify-center gap-2">
+                    <button onClick={handleDownloadBackup} className="flex-1 bg-blue-500 text-white px-4 py-2 rounded-md font-semibold flex items-center justify-center gap-2"><ArrowDownTrayIcon className="w-5 h-5"/>Descargar Copia</button>
+                    <label className="flex-1 bg-gray-600 text-white px-4 py-2 rounded-md font-semibold cursor-pointer flex items-center justify-center gap-2">
                         <ArrowUpTrayIcon className="w-5 h-5"/>
                         Cargar Copia
-                        <input type="file" className="hidden" disabled />
+                        <input type="file" accept=".json" onChange={handleLoadBackup} className="hidden" />
                     </label>
                 </div>
+                 <p className="text-xs text-gray-500 mt-2">La carga de copias de seguridad está deshabilitada para evitar conflictos con la base de datos en la nube.</p>
             </div>
         </div>
     );
@@ -1330,7 +1320,7 @@ const AdminView: React.FC = () => {
         
         return {
             totalOrders: filteredOrders.length,
-            totalAffiliates: state.affiliates.length, // This is not date-dependent
+            totalAffiliates: state.affiliates.length,
             pendingAffiliates: state.affiliates.filter(a => a.status === AffiliateStatus.Pending).length,
             pendingTransfers: state.orders.filter(o => o.status === OrderStatus.PendingConfirmation).length,
             pendingInventoryRequests: state.inventoryChanges.filter(c => c.status === InventoryChangeStatus.Pending).length,

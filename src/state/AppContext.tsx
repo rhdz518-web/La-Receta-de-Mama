@@ -6,7 +6,6 @@ import firebase from 'firebase/compat/app';
 import 'firebase/compat/firestore';
 
 
-// Define action types with simplified payloads
 type Action =
     | { type: 'LOGIN'; payload: string }
     | { type: 'LOGOUT' }
@@ -14,22 +13,22 @@ type Action =
     | { type: 'AFFILIATE_LOGOUT' }
     | { type: 'ADD_OR_UPDATE_USER'; payload: User }
     | { type: 'ADD_ORDER'; payload: Order }
-    | { type: 'UPDATE_ORDER_STATUS'; payload: { orderId: string; status: OrderStatus; quantity: number; affiliateId: string; } }
+    | { type: 'UPDATE_ORDER_STATUS'; payload: { orderId: string; status: OrderStatus, quantity: number, affiliateId: string } }
     | { type: 'CONFIRM_TRANSFER_PAYMENT'; payload: { orderId: string } }
     | { type: 'ADD_REFERRAL'; payload: Referral }
-    | { type: 'COMPLETE_REFERRAL'; payload: { referralId: string; couponCode: string; referrerPhone: string; } }
-    | { type: 'TOGGLE_COUPON_STATUS'; payload: { couponCode: string; isActive: boolean } }
+    | { type: 'COMPLETE_REFERRAL'; payload: { referralId: string; couponCode: string; referrerPhone: string } }
+    | { type: 'TOGGLE_COUPON_STATUS'; payload: { couponCode: string, isActive: boolean } }
     | { type: 'DELETE_COUPON'; payload: { couponCode: string } }
     | { type: 'APPLY_FOR_AFFILIATE'; payload: Affiliate }
     | { type: 'UPDATE_AFFILIATE_STATUS'; payload: { affiliateId: string; status: AffiliateStatus } }
-    | { type: 'TOGGLE_AFFILIATE_DELIVERY'; payload: { affiliateId: string; hasDeliveryService: boolean } }
+    | { type: 'TOGGLE_AFFILIATE_DELIVERY'; payload: { affiliateId: string, hasDeliveryService: boolean } }
     | { type: 'UPDATE_AFFILIATE_SETTINGS'; payload: { affiliateId: string; address: string; deliveryCost: number } }
     | { type: 'UPDATE_AFFILIATE_SCHEDULE'; payload: { affiliateId: string; schedule: Affiliate['schedule'] } }
-    | { type: 'TOGGLE_TEMPORARY_CLOSED'; payload: { affiliateId: string; isTemporarilyClosed: boolean } }
+    | { type: 'TOGGLE_TEMPORARY_CLOSED'; payload: { affiliateId: string, isTemporarilyClosed: boolean } }
     | { type: 'DELETE_AFFILIATE'; payload: { affiliateId: string } }
     | { type: 'ADD_INVENTORY_CHANGE'; payload: InventoryChange }
     | { type: 'RESOLVE_INVENTORY_CHANGE'; payload: { changeId: string; status: InventoryChangeStatus.Approved | InventoryChangeStatus.Rejected } }
-    | { type: 'AFFILIATE_CONFIRM_INVENTORY_CHANGE'; payload: { changeId: string; affiliateId: string; amount: number } }
+    | { type: 'AFFILIATE_CONFIRM_INVENTORY_CHANGE'; payload: { changeId: string, affiliateId: string, amount: number } }
     | { type: 'CANCEL_INVENTORY_REQUEST'; payload: { changeId: string } }
     | { type: 'UPDATE_SETTINGS'; payload: Partial<AppState> }
     | { type: 'LOAD_STATE' }
@@ -39,7 +38,6 @@ type Action =
     | { type: 'PERFORM_CASHOUT'; payload: CashOut }
     | { type: 'AFFILIATE_CONFIRM_CASHOUT'; payload: { cashOutId: string } }
     | { type: 'SET_STATE_FROM_FIRESTORE'; payload: Partial<AppState> };
-
 
 interface AppContextType {
     state: AppState;
@@ -85,7 +83,6 @@ const appReducer = (state: AppState, action: Action): AppState => {
             return { ...state, currentAffiliate: null };
         
         case 'SET_STATE_FROM_FIRESTORE':
-            // This is the only way state objects get updated from the database
             return { ...state, ...action.payload };
 
         case 'ADD_OR_UPDATE_USER':
@@ -197,7 +194,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
         case 'ADD_INVENTORY_CHANGE': {
             const { id, ...changeData } = action.payload;
             db.collection("inventoryChanges").doc(id).set(changeData);
-            if (changeData.status !== InventoryChangeStatus.Pending) { // Admin adjustment
+            if (changeData.status !== InventoryChangeStatus.Pending) {
                  return { ...state, successMessage: 'Ajuste de inventario enviado para confirmación del vendedor.' };
             }
             return state;
@@ -249,7 +246,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
             return { ...state, successMessage: null };
             
         case 'LOAD_STATE': {
-             alert("La restauración desde un archivo está deshabilitada al usar la base de datos en la nube para prevenir la sobreescritura de datos.");
+             alert("La restauración desde un archivo está deshabilitada al usar la base de datos en la nube.");
              return state;
         }
 
@@ -259,10 +256,8 @@ const appReducer = (state: AppState, action: Action): AppState => {
 };
 
 const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
-    // Initialize state directly, WITHOUT loading from localStorage
     const [state, dispatch] = useReducer(appReducer, initialState);
 
-    // This useEffect is now the SINGLE SOURCE OF TRUTH for state updates
     useEffect(() => {
         console.log("Setting up Firestore listeners...");
 
@@ -283,13 +278,11 @@ const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
                 if (doc.exists) {
                     const settingsData = doc.data();
                     if (settingsData) {
-                        // Ensure auth state is not overwritten from DB
                         delete (settingsData as any).isAuthenticated;
                         delete (settingsData as any).currentAffiliate;
                         dispatch({ type: 'SET_STATE_FROM_FIRESTORE', payload: settingsData });
                     }
                 } else {
-                    // Initialize settings in Firestore if they don't exist
                     const initialSettings = {
                         adminPassword: initialState.adminPassword,
                         adminPhoneNumber: initialState.adminPhoneNumber,
@@ -304,12 +297,11 @@ const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
             })
         ];
 
-        // Cleanup function to unsubscribe from listeners when the component unmounts
         return () => {
             console.log("Cleaning up Firestore listeners.");
             unsubs.forEach(unsub => unsub());
         };
-    }, []); // Empty dependency array means this runs only once on mount
+    }, []);
 
     return (
         <AppContext.Provider value={{ state, dispatch }}>

@@ -1,10 +1,13 @@
 import React, { useState, useContext, useMemo, useEffect } from 'react';
-import { AppContext } from '../state/AppContext';
+// FIX: Corrected import path for AppContext from '../state/AppContext' to '../context/AppContext'
+import { AppContext } from '../context/AppContext';
 import { Order, OrderStatus, PaymentMethod, InventoryChangeStatus, Affiliate, CashOutStatus, CashOut, InventoryChange } from '../types';
 import StatCard from './StatCard';
 import CashIcon from './icons/CashIcon';
 import ClipboardDocumentListIcon from './icons/ClipboardDocumentListIcon';
 import ChartBarIcon from './icons/ChartBarIcon';
+import CheckCircleIcon from './icons/CheckCircleIcon';
+import XCircleIcon from './icons/XCircleIcon';
 import ClockIcon from './icons/ClockIcon';
 import StoreIcon from './icons/StoreIcon';
 import CogIcon from './icons/CogIcon';
@@ -12,6 +15,7 @@ import ImagePreviewModal from './ImagePreviewModal';
 import CurrencyDollarIcon from './icons/CurrencyDollarIcon';
 import WhatsAppIcon from './icons/WhatsAppIcon';
 import ArchiveBoxIcon from './icons/ArchiveBoxIcon';
+import InformationCircleIcon from './icons/InformationCircleIcon';
 import ExclamationTriangleIcon from './icons/ExclamationTriangleIcon';
 
 
@@ -271,7 +275,7 @@ const AffiliateView: React.FC = () => {
     const lowInventoryOrders = useMemo(() => {
         if (!currentAffiliate) return [];
         return affiliateOrders.filter(o => o.isLowInventoryOrder && o.status === OrderStatus.Active)
-    }, [affiliateOrders]);
+    }, [affiliateOrders, currentAffiliate]);
     
     const inventoryChanges = useMemo(() => {
         if (!currentAffiliate) return [];
@@ -299,7 +303,7 @@ const AffiliateView: React.FC = () => {
             if (order.paymentMethod === PaymentMethod.Cash) {
                 const amountOwedByAffiliate = (order.totalCost - (order.discountApplied || 0)) - commission;
                 calculatedBalance += amountOwedByAffiliate;
-            } else { // Transfer
+            } else {
                 const amountOwedToAffiliate = commission + deliveryFee;
                 calculatedBalance -= amountOwedToAffiliate;
             }
@@ -324,11 +328,15 @@ const AffiliateView: React.FC = () => {
     };
 
     const handleToggleDelivery = () => {
-        dispatch({ type: 'TOGGLE_AFFILIATE_DELIVERY', payload: { affiliateId: currentAffiliateData.id, hasDeliveryService: currentAffiliateData.hasDeliveryService } });
+        if (currentAffiliateData) {
+            dispatch({ type: 'TOGGLE_AFFILIATE_DELIVERY', payload: { affiliateId: currentAffiliateData.id, hasDeliveryService: currentAffiliateData.hasDeliveryService } });
+        }
     };
     
     const handleToggleTemporaryClosed = () => {
-        dispatch({ type: 'TOGGLE_TEMPORARY_CLOSED', payload: { affiliateId: currentAffiliateData.id, isTemporarilyClosed: currentAffiliateData.isTemporarilyClosed } });
+        if(currentAffiliateData) {
+            dispatch({ type: 'TOGGLE_TEMPORARY_CLOSED', payload: { affiliateId: currentAffiliateData.id, isTemporarilyClosed: currentAffiliateData.isTemporarilyClosed } });
+        }
     };
 
     const handleScheduleChange = (day: string, field: 'isOpen' | 'openTime' | 'closeTime', value: any) => {
@@ -410,6 +418,7 @@ const AffiliateView: React.FC = () => {
     };
 
     const handleNotifyAdminForInventory = (amount: number) => {
+        if (!currentAffiliate) return;
         const message = `Hola, ¡ayuda por favor! Tengo un pedido urgente y solicité *${amount} tortillas* para poder surtirlo. ¿Podrías aprobar mi solicitud de inventario? ¡Gracias!`;
         const whatsappUrl = `https://wa.me/52${state.adminPhoneNumber}?text=${encodeURIComponent(message)}`;
         window.open(whatsappUrl, '_blank');

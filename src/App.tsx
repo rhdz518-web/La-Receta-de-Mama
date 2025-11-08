@@ -1,5 +1,5 @@
 import React, { useState, useContext, useRef } from 'react';
-import { AppProvider, AppContext } from './state/AppContext';
+import { AppProvider, AppContext } from './context/AppContext';
 import CustomerView from './components/CustomerView';
 import AdminView from './components/AdminView';
 import AdminLogin from './components/AdminLogin';
